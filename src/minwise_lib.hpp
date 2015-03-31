@@ -458,7 +458,7 @@ public:
     /**
      * Computes the minwise signature, given an input set and a previously allocated signature array.
      * in_set: binary array that holds the input set.
-     * signature: array having n_hashes components.
+     * signature: array having nbands components.
      *
      * Note: This function resets every value of the signature array given.
      */

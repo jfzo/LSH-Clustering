@@ -14,6 +14,17 @@ class HashIndex
     typedef std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<IDTYPE>>> T;
 	typedef std::unordered_map<uint32_t, std::vector<IDTYPE> > T2;
 private:
+
+
+    uint32_t t1b(const uint32_t); // for IPoint objs.
+    uint32_t t2b(const uint32_t);
+    uint32_t t1b(const uint32_t *); // for Point objs.
+    uint32_t t2b(const uint32_t *);
+    uint32_t t1b(const unsigned char *); // for BinarySignature objs.
+    uint32_t t2b(const unsigned char *);
+
+
+
     T table;
     uint32_t tableSize;
     size_t k;
@@ -21,113 +32,6 @@ private:
     int32_t * rp; // parameters r' for t1 hash function
     int32_t * rpp;// parameters r'' for t2 hash function
     int64_t P = 4294967291; // 2^32 - 5 (recommended by Andoni and Indyk)
-
-
-	/**
-	1st level Hash function implementation suggested by Andoni.
-	**/
-    uint32_t t1b(const uint32_t * data){
-    
-        int64_t hi32 = 4294967295 << 32;
-        int64_t lo32 = 4294967295;
-
-        int64_t sum = 0;
-        for(int i=0; i<k; i++){
-            //std::cout << (int64_t)rp[i] <<"*"<< data[i] << " + ";
-            //sum += ((int64_t)rp[i] * data[i]);
-            int64_t mult = ((int64_t)rp[i] * data[i]);
-            sum += ( (lo32 & mult) + 5*(hi32 & mult) ) % P;
-        }
-        //std::cout << " up & low " << (up32 & lo32) << "\n";
-
-        //sum %= P;
-        sum %= tableSize;
-        return sum;
-    }
-
-	/**
-	2nd level Hash function implementation suggested by Andoni.
-	**/
-    uint32_t t2b(const uint32_t * data){
-    
-        int64_t hi32 = 4294967295 << 32;
-        int64_t lo32 = 4294967295;
-
-        int64_t sum = 0;
-        for(int i=0; i<k; i++){
-            //std::cout << (int64_t)rp[i] <<"*"<< data[i] << " + ";
-            //sum += ((int64_t)rp[i] * data[i]);
-            int64_t mult = ((int64_t)rpp[i] * data[i]);
-            sum += ( (lo32 & mult) + 5*(hi32 & mult) ) % P;
-        }
-        //std::cout << " up & low " << (up32 & lo32) << "\n";
-
-        //sum %= P;
-        //sum %= tableSize;
-        return sum;
-    }
-
-    uint32_t t1b(const unsigned char * data){
-		unsigned long hash = 0;
-		int c;
-		while ((c = *data++))
-			hash = c + (hash << 6) + (hash << 16) - hash;
-		
-		return (uint32_t)(hash % tableSize);
-	}
-
-    uint32_t t2b(const unsigned char * data){
-		unsigned long hash = 0;
-		int c;
-		while ((c = *data++))
-			hash = c + (hash << 6) + (hash << 16) - hash;
-		
-		return (uint32_t)hash;
-	}
-
-	/**
-	1st level hash function
-	*/
-    uint32_t t1(const int * data)
-    {   
-        //std::cout << "computing t1\n";
-        int64_t sum = 0;
-        for(int i=0; i<k; i++){
-            //std::cout << (int64_t)rp[i] <<"*"<< data[i] << " + ";
-            sum += ((int64_t)rp[i] * data[i]);
-        }
-        //std::cout << "\n";
-        //std::cout << "sum prev. " << sum << " % "<<P <<" : " << (sum % P)<<" % " << tableSize << " : " << (sum % P)%tableSize<<"\n";
-        sum %= P;
-        sum %= tableSize;
-
-        //if(sum < 0 )
-        //  sum += tableSize;
-        //std::cout << "t1 -->"<< sum << "\n";
-
-        return sum;
-    }
-
-	/**
-	2nd level hash function
-	*/
-    uint32_t t2(const int * data)
-    {
-        //std::cout << "computing t2\n";
-        int64_t sum = 0;
-        for(int i=0; i<k; i++) {
-            //std::cout << rpp[i] <<"*"<< data[i] << " + ";
-            sum += ((int64_t)rpp[i] * data[i]);
-        }
-        //std::cout << "\n";
-        //std::cout << "sum prev. " << sum << " % "<<P <<" : " << (sum % P)<<"\n";
-        sum %= P;
-        //if(sum < 0 )
-        //  sum += P;
-        //std::cout << "t2 -->"<< sum << "\n";
-
-        return sum;
-    }
 
 
 public:
@@ -213,6 +117,92 @@ public:
 };
 
 
+
+    // Hash functions for IPoint objects
+    template <typename IDTYPE, typename OBJECT>
+    uint32_t HashIndex<IDTYPE, OBJECT>::t1b(const uint32_t data){
+        return data % tableSize;
+    }
+
+    template <typename IDTYPE, typename OBJECT>
+    uint32_t HashIndex<IDTYPE, OBJECT>::t2b(const uint32_t data){
+        return data;
+    }
+
+
+    // Hash functions for Point objects
+
+	/**
+	1st level Hash function implementation suggested by Andoni.
+	**/
+    template <typename IDTYPE, typename OBJECT>
+    uint32_t HashIndex<IDTYPE, OBJECT>::t1b(const uint32_t * data){
+    
+        int64_t hi32 = 4294967295 << 32;
+        int64_t lo32 = 4294967295;
+
+        int64_t sum = 0;
+        for(int i=0; i<k; i++){
+            //std::cout << (int64_t)rp[i] <<"*"<< data[i] << " + ";
+            //sum += ((int64_t)rp[i] * data[i]);
+            int64_t mult = ((int64_t)rp[i] * data[i]);
+            sum += ( (lo32 & mult) + 5*(hi32 & mult) ) % P;
+        }
+        //std::cout << " up & low " << (up32 & lo32) << "\n";
+
+        //sum %= P;
+        sum %= tableSize;
+        return sum;
+    }
+
+
+	/**
+	2nd level Hash function implementation suggested by Andoni.
+	**/
+    template <typename IDTYPE, typename OBJECT>
+    uint32_t HashIndex<IDTYPE, OBJECT>::t2b(const uint32_t * data){
+    
+        int64_t hi32 = 4294967295 << 32;
+        int64_t lo32 = 4294967295;
+
+        int64_t sum = 0;
+        for(int i=0; i<k; i++){
+            //std::cout << (int64_t)rp[i] <<"*"<< data[i] << " + ";
+            //sum += ((int64_t)rp[i] * data[i]);
+            int64_t mult = ((int64_t)rpp[i] * data[i]);
+            sum += ( (lo32 & mult) + 5*(hi32 & mult) ) % P;
+        }
+        //std::cout << " up & low " << (up32 & lo32) << "\n";
+
+        //sum %= P;
+        //sum %= tableSize;
+        return sum;
+    }
+
+
+    // Hash functions for BinarySignature objects
+    template <typename IDTYPE, typename OBJECT>
+    uint32_t HashIndex<IDTYPE, OBJECT>::t1b(const unsigned char * data){
+		unsigned long hash = 0;
+		int c;
+		while ((c = *data++))
+			hash = c + (hash << 6) + (hash << 16) - hash;
+		
+		return (uint32_t)(hash % tableSize);
+	}
+
+    template <typename IDTYPE, typename OBJECT>
+    uint32_t HashIndex<IDTYPE, OBJECT>::t2b(const unsigned char * data){
+		unsigned long hash = 0;
+		int c;
+		while ((c = *data++))
+			hash = c + (hash << 6) + (hash << 16) - hash;
+		
+		return (uint32_t)hash;
+	}
+
+
+/* END OF HASHINDEX DEFINITION */
 class Point
 {
 public:
@@ -231,6 +221,23 @@ public:
         //std::cout << "Deallocating point\n";
     }
 };
+
+
+class IPoint
+{
+public:
+    int id;
+    uint32_t data;
+    size_t dim;
+
+    IPoint(int _id):id(_id)
+    {
+        dim = 1;
+    }
+
+
+};
+
 
 class BinarySignature
 {

@@ -24,3 +24,6 @@ minwiselsh: src/perfectlshmwise_custom.cpp
 	$(COMPILER) -Wall -std=c++11 -o bin/perfectlshmwise_custom src/perfectlshmwise_custom.cpp
 
 
+lshsimilarity: src/lshsimilarity.cpp
+	$(COMPILER) -Wall -std=c++11 -o bin/lshsimilarity src/lshsimilarity.cpp
+
