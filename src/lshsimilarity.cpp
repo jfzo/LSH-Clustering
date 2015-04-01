@@ -173,7 +173,12 @@ int main(int argc, char* argv[])
     strcat(newname, argv[5]);//r
     strcat(newname, "-");
     strcat(newname, argv[6]);//nbands
+#if SIMTYPE == 1
     strcat(newname, "_mw.simestimate");
+#endif
+#if SIMTYPE == 2
+    strcat(newname, "_rh.simestimate");
+#endif
     std::cout << "Estimated similarity matrix will be written to:"<< newname << "\n";
     write_simmatrix(simhat, data.instances(), newname);
 
