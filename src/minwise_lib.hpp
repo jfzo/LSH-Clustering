@@ -327,9 +327,15 @@ public:
                 band_cnt++;      
             }            
         }
-        assert( band_cnt == nbands);
-        assert( block == 0);
-		// signature must have nband components !!
+	}   
+    
+	/**
+	Computes the signature for the input vector and stores it
+	into the signature pointer (nbands size). The third parameter is
+    employed as a dummy parameter in order to keep compliance with existing calls.
+	**/
+	void get_signature(const RealVector * in_vec, uint32_t *signature, uint32_t max_val) {
+        get_signature(in_vec, signature);
 	}   
     
     /*

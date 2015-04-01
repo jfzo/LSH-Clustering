@@ -15,8 +15,13 @@
 
 #include <unordered_map>
 
-#define ESIMCMP 0 // If set estimated similarity matrix will be computed.
-#define SIMESTMOD 1 // Define the estimation mode (1 or 2)
+/**
+ * These two options are set from the command line in compilation time.
+ *
+#define SIMESTMOD 1 // Define the estimation mode (1 or 2) //TODO: use command line option for this.
+#define SIMTYPE 1 // Define similarity type: {1:Jaccard} {2:Cosine} //TODO: use command line option for this.
+*/
+
 
 
 typedef std::vector<int> bucket;
@@ -50,41 +55,52 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-
-    Setdata data;
-    read_csv_set_data(argv[1], argv[2], data); // data file path, label file path and Setdata structure.
-    std::cout << "Data file read.\n";
-    std::cout << argv[1] << " labels: "<< argv[2] << "\n";
-    std::cout << "NDataPoints:"<< data.instances() << " Dim:"<< data.dims() <<"\n";
-
-
-#if ESIMCMP
     std::cout << "Approximate similarity matrix will be computed and stored.\n";
-#endif
 
     double delta = atof(argv[3]); // error rate (rate of false positive)
     double s = atof(argv[4]); // similarity threshold / (1-s)-Neighbors will be returned with Pr. (1-delta)
     int r = atoi(argv[5]); // nr of rows per band
     int nbands = ceil(log10(delta)/log10(1-pow(s, r)));
     std::cout << "Recommended NBands : " << nbands<<"\n";
-
     nbands = atoi(argv[6]);
-
     std::cout << "NBands set to " << nbands<<" and band size manually set to " << r<<"\n";
 
+
+#if SIMTYPE == 1
+    /*
+     * TASK: Jaccard similarity estimation
+     */
+    std::cout << "Jaccard similarity will be estimated using sim-estimate mode "<< SIMESTMOD <<".\n";
+    Setdata data;
+    read_csv_set_data(argv[1], argv[2], data); // data file path, label file path and Setdata structure.
+    std::cout << "Set data succesfully read from file.\n";
+
     MinwiseGenerator gen(nbands, r, data.dims());
-    
+    /**/
+#endif
+
+#if SIMTYPE == 2
+    /*
+     * TASK: Angle similarity estimation
+     */
+    std::cout << "Cosine similarity will be estimated using sim-estimate mode "<< SIMESTMOD <<".\n";
+    Realdata data;
+    read_csv_real_data(argv[1], argv[2], data); // data file path, label file path and Setdata structure.
+    std::cout << "Double data succesfully read from file.\n";
+
+	RandomHyperplaneGenerator gen(nbands, r, data.dims());
+    /**/
+#endif
+
+    std::cout << argv[1] << " labels: "<< argv[2] << "\n";
+    std::cout << "NDataPoints:"<< data.instances() << " Dim:"<< data.dims() <<"\n";
+
     std::vector<table> T(nbands);
 
     uint32_t *sgns = new uint32_t [gen.nbands];
     // apply minwise to each point in data.
     for (int dataid = 0; dataid < data.instances(); dataid++) {
         gen.get_signature(data.data[dataid], sgns, 10*data.instances()); // unbounded hash value
-        /*
-        for(int si=0; si<nbands; si++)
-            std::cout << sgns[si] << " ";
-        std::cout << "\n";
-        */
         for(int j=0; j<nbands; j++) {
             // index point i into T[j] with key equal to sgns[j]
             T[j][sgns[j]].push_back( dataid );
@@ -92,10 +108,9 @@ int main(int argc, char* argv[])
     }
     std::cout << "Indexing stage done.\n";
 
-
-    // Similarity estimation stage.
-    //
-
+    /*
+     * Similarity estimation stage.
+     */
     double ** simhat = new double* [data.instances()];
     for(int i=0; i<data.instances(); i++) {
         simhat[i] = new double[data.instances()];
@@ -142,6 +157,11 @@ int main(int argc, char* argv[])
 #if SIMESTMOD == 2
             simhat[i][j] = pow(simhat[i][j]/nbands , 1.0/(simhat[i][j]*r) );// --> MOD 2
 #endif
+
+#if SIMTYPE == 2
+            simhat[i][j] =  cos( (1-simhat[i][j] ) *M_PI/2 );
+#endif
+
             simhat[j][i] = simhat[i][j];
         }
     }

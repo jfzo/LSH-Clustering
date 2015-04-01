@@ -2,3 +2,23 @@
 bin/lshsimilarity
 
 *.orig
+
+bin/cosLshsimMode2
+
+bin/jaccLshsimMode2
+
+bin/cosLshsimMode1
+
+bin/perfectlshangle_custom
+
+bin/perfectlshangle_custom
+
+bin/perfectlshangle_custom
+
+bin/jaccLshsimMode1
+
+bin/perfectlshmwise_custom
+
+bin/perfectlshangle_custom
+
+bin/perfectlshmwise_custom
