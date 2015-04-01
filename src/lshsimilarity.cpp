@@ -92,30 +92,7 @@ int main(int argc, char* argv[])
     }
     std::cout << "Indexing stage done.\n";
 
-    /*
-    HashIndex<int, IPoint> * tables = new HashIndex<int, IPoint>[nbands];
-    for(int i=0; i<nbands; i++)
-        tables[i].initialize_structure(10*data.instances(), r, time(NULL)); // table size, input dim and seed.
 
-    IPoint inpt(-1);
-
-    uint32_t *sgns = new uint32_t [gen.nbands];
-    // apply minwise to each point in data.
-    for (int i = 0; i < data.instances(); i++) {
-        inpt.id = i; // Assign the id for the current point.
-        // create a Point object for the signature.
-        gen.get_signature(data.data[i], sgns); // unbounded hash value
-
-        //std::cout << "Signature for instance "<<i<<"\n";
-        for(int j=0; j<nbands; j++) {
-            inpt.data = sgns[i];
-            // Index it.
-            tables[j].index(inpt);
-        }
-    }
-    std::cout << "Indexing stage done.\n";
-    */
-    
     // Similarity estimation stage.
     //
 
@@ -150,44 +127,6 @@ int main(int argc, char* argv[])
     }
 
 
-    /*
-    //std::cout<< "Displaying tables and buckets (ommiting buckets having less than 1 doc.)\n";
-    for(int t=0; t<nbands; t++) {
-        std::vector< std::vector<int>> out;
-        tables[t].traverse_table(out);	// get all buckets from table[i]
-        //traverse vector
-        
-        //std::cout << "Table "<<t<<"("<< out.size()<<" bcks.)"<<"\n";
-        //
-        for(size_t bucketid=0; bucketid < out.size(); bucketid++) {
-            // for each bucket retrieved
-            std::vector<int>& bucket = out[bucketid];
-            int bucket_size = bucket.size();
-
-            if( bucket_size < 2 )
-                continue;
-
-            //std::cout << "Bucket nr "<< bucketid+1 <<" ("<< bucket_size<<" docs.)"<<"\n";
-            //
-            for(int i=0; i<bucket_size; i++) {
-                //std::cout << bucket[i] << " ";
-                //assert(bucket[i] < data.instances() );
-                for(int j=i+1; j<bucket_size; j++) {
-                    if(bucket[i] < bucket[j])
-                        std::cout << bucket[i] << "-" << bucket[j] << "\n";
-                    else
-                        std::cout << bucket[j] << "-" << bucket[i] << "\n";
-                    simhat[ bucket[i] ][ bucket[j] ] ++;
-                    //std::cout << simhat[bucket[i]][bucket[j]] << "\n";
-                    simhat[ bucket[j] ][ bucket[i] ] = simhat[ bucket[i] ][ bucket[j] ]; // symmetric condition.
-
-                }
-            }
-            //std::cout <<"\n";
-        }
-    }
-    */
-
     // correcting the estimated similarity.
     for(int i=0; i<data.instances() - 1; i++) {
         simhat[i][i] = 1.0;
@@ -196,6 +135,13 @@ int main(int argc, char* argv[])
                 continue;
             //std::cout << "Converting to "<< "pow("<<simhat[i][j]/nbands <<", 1.0/("<<simhat[i][j]*r<<") )" << "\n";
             simhat[i][j] = pow(simhat[i][j]/nbands , 1.0/(simhat[i][j]*r) );// MOD - 2
+
+#if SIMESTMOD == 1
+			simhat[i][j] = pow( 1 - pow( 1-simhat[i][j]/nbands , 1.0/nbands) , 1.0/r); // --> MOD 1
+#endif
+#if SIMESTMOD == 2
+            simhat[i][j] = pow(simhat[i][j]/nbands , 1.0/(simhat[i][j]*r) );// --> MOD 2
+#endif
             simhat[j][i] = simhat[i][j];
         }
     }
@@ -214,8 +160,6 @@ int main(int argc, char* argv[])
     for(int i=0; i<data.instances(); i++)
         delete[] simhat[i];
     delete[] simhat;
-
-    //delete[] tables;
 
     delete[] sgns;
     return 0;
