@@ -75,6 +75,7 @@ public:
         t1v = t1b(o.data);
         t2v = t2b(o.data);
         table[t1v][t2v].push_back(o.id);
+        //std::cout << "Indexing point "<<o.id<<" into buckets "<<t1v<<"-->"<<t2v<<"\n";
 /*
         if(table.find(t1v) == table.end() )
             table[t1v][t2v].push_back(o.id);

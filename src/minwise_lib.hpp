@@ -484,10 +484,46 @@ public:
     		signature[i] = hash(&buffer[i * r], r);
     		//std::cout << "signature["<< i << "] "<< signature[i]<<"\n ";
     	}
-
     	//print_signature(signature);
     	//print_buffer();
     }
+
+
+    /**
+     * Computes the minwise signature, given an input set and a previously allocated signature array and
+     * outputs into the signture array MOD maxval.
+     * in_set: binary array that holds the input set.
+     * signature: array having nbands components.
+     * maxval: uint32_t number denoting the max hash value allowed foe every coordinate. 
+     *
+     * Note: This function resets every value of the signature array given.
+     */
+    void get_signature(const BinarySet * in_set, UINT_T *signature, uint32_t maxval) {
+    	size_t in_size = in_set->size;
+
+    	for (int i = 0; i < n_hashes; i++)
+    		buffer[i] = std::numeric_limits<int>::max();
+
+    	for (size_t i = 0; i < in_size; i++) { // for each feature in the universal set.
+    		if (in_set->operator[](i)) { // continues only if the feature is present in the current input set.
+    			for (int j = 0; j < n_hashes; j++) {
+    				//UINT_T h_j = hash(i, a[j], b[j], bigprime) % in_size; // recall that's a permutation--> [0, max_feature_index]
+    				UINT_T h_j = hash(i, seeds[j], seeds[j+n_hashes]) % in_size; // recall that's a permutation--> [0, max_feature_index]
+                       // recall that if in_size is prime, then the permutation is perfect.
+    				buffer[j] = std::min(buffer[j], h_j);
+    			}
+    		}
+    	}
+
+    	//Process the buffer and fill in the signature.
+    	for (int i = 0; i < nbands; i++) {
+    		signature[i] = hash(&buffer[i * r], r) % (maxval + 1);
+    		//std::cout << "signature["<< i << "] "<< signature[i]<<"\n ";
+    	}
+    	//print_signature(signature);
+    	//print_buffer();
+    }
+
 
 	
 	/**
