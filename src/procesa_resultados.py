@@ -1,3 +1,7 @@
+import numpy as np
+import scipy
+import scipy.stats
+
 """
 Ordering used for the generation of result tables.
 """
@@ -75,6 +79,24 @@ cosine = {"20NG-m5":{"E":0.3574,"P":0.8312},
 "k1b":{"E":0.1745,"P":0.891},
 "wap":{"E":0.3386,"P":0.6865}}
             
+def _conf_interval(xbar, s, N):
+    std_error = s/np.sqrt(N)
+    interv = scipy.stats.t.interval(0.95, N-1)[1]
+    lower = xbar - interv*std_error
+    upper = xbar + interv*std_error
+    return lower, upper          
+
+            
+def conf_interval(X):#sample data given
+    """
+    Computes the confidence interval with 95% confidence of the
+    sample X, whose population deviation is Unknown.
+    Note: Good tutorial in http://onlinestatbook.com/2/estimation/mean.html
+    """
+    xbar, s2 = np.mean(X), np.var(X,ddof=1)
+    return _conf_interval(xbar, np.sqrt(s2), len(X))
+            
+            
 def remove_extension(L):
     return L.replace("_out.dat","").replace(".dat","").replace(".mat","")
 
@@ -135,7 +157,7 @@ def datasets_mean_std_differences(fname):
             REF_VALUE = cosine[f]['E']
         out[f]['E'] = {}
         out[f]['E']['mean'] = np.mean(np.array(dsets[f][i]) -  REF_VALUE )
-        out[f]['E']['std'] = np.std(np.array(dsets[f][i]) - REF_VALUE )
+        out[f]['E']['std'] = np.std(np.array(dsets[f][i]) - REF_VALUE , ddof=1)
 
         i = fieldnames.index('P')
         if 'minwise' in fname:
@@ -144,7 +166,7 @@ def datasets_mean_std_differences(fname):
             REF_VALUE = cosine[f]['P']
         out[f]['P'] = {}
         out[f]['P']['mean'] = np.mean(REF_VALUE - np.array(dsets[f][i]) )
-        out[f]['P']['std'] = np.std(REF_VALUE - np.array(dsets[f][i]) )
+        out[f]['P']['std'] = np.std(REF_VALUE - np.array(dsets[f][i]) , ddof=1 )
 
         if out[f]['P']['mean'] < 0:
             print "[",fname,"]NEgative Purity mean difference for",f
@@ -207,7 +229,7 @@ def datasets_mean_std(fname, fieldslist):
             i = fieldnames.index(ff)
             out[f][ff] = {}
             out[f][ff]['mean'] = np.mean(dsets[f][i])
-            out[f][ff]['std'] = np.std(dsets[f][i])
+            out[f][ff]['std'] = np.std(dsets[f][i] , ddof=1)
     return out
 
 def _plot_entropy_purity(R, outpath=None):
@@ -264,6 +286,49 @@ def _plot_entropy_purity(R, outpath=None):
         plt.savefig(outpath,bbox_inches='tight')
         plt.close()
 
+def plot_conf_intervals(R, outpath=None):
+    x = np.arange(0, len(R)*3, 3)
+    Elower = []
+    Eupper = []
+    Plower = []
+    Pupper = []
+
+    labels = []
+    for dset in ordering: #  ensures the fullfilment of the desired order for the bars
+        if dset in R:
+            labels.append(dset)
+            Elow, Eup = _conf_interval(R[dset]['E']['mean'], R[dset]['E']['std'], 10)
+            Plow, Pup = _conf_interval(R[dset]['P']['mean'], R[dset]['P']['std'], 10)
+            Elower.append(Elow)
+            Eupper.append(Eup)
+            Plower.append(Plow)
+            Pupper.append(Pup)
+        else:
+            print "ERROR",dset," must be present in the ordering list."
+               
+    N = len(R)
+    ind = np.arange(0,5*N,5)    # the x locations for the groups
+    width = 1.8       # the width of the bars: can also be len(x) sequence
+    
+    fig, (ax1, ax2) = plt.subplots(2,1, sharex=True)    
+    ax1.fill_between(ind+width, Elower, Eupper, color='b', alpha = 0.4)
+    ax1.plot(ind+width, np.zeros(N),'black')
+    ax1.set_ylabel('$\Delta=\mathbf{E}_{est}-\mathbf{E}_{exact}$')
+    ax1.grid()
+    
+    ax2.fill_between(ind+width, Plower, Pupper, color='r', alpha = 0.4)
+    ax2.plot(ind+width, np.zeros(N),'black')
+    ax2.set_ylabel('$\Delta=\mathbf{P}_{exact}-\mathbf{P}_{est}$')
+    ax2.grid()
+    ax2.set_xticks(ind+width-0.2)    
+    ax2.set_xticklabels( labels , rotation="vertical")
+    ax2.set_xlim(right=5*N-2)
+    #ax2.legend((rects1[0], rects2[0]),('Entropy', 'Purity') )  
+    if not outpath:
+        plt.show()
+    else:
+        plt.savefig(outpath,format='eps',bbox_inches='tight')
+        plt.close()
 
 
 
@@ -271,6 +336,8 @@ def plot_entropy_purity(fname, outpath=None):
     R = datasets_mean_std(fname, "E,P")
     _plot_entropy_purity(R, outpath)
     
+
+########### END OF METHOD DEFINITIONS ##########
 
 if __name__ == '2__main__':
     import sys
@@ -348,13 +415,13 @@ if __name__ == '__main__':
             # r1b
             if 'r1b' in fname:
                 #print "[r1b] adding",fname
-                r1b.update( datasets_mean_std_differences(fname) )
+                r1b.update( datasets_mean_std_differences("/Users/juan/Downloads/experimental_results/"+fname) )
             elif 'r2b' in fname:
                 #print "[r2b] adding",fname                
-                r2b.update( datasets_mean_std_differences(fname) )
+                r2b.update( datasets_mean_std_differences("/Users/juan/Downloads/experimental_results/"+fname) )
             else:
                 #print "[r3b] adding",fname                
-                r3b.update( datasets_mean_std_differences(fname) )
+                r3b.update( datasets_mean_std_differences("/Users/juan/Downloads/experimental_results/"+fname) )
 
         # latex code printing
         if GEN_LATEX_CODE:
@@ -364,8 +431,8 @@ if __name__ == '__main__':
                     print s_texrow.format(DATA=dset,E_r1=r1b[dset]['E']['mean'],E_r2=r2b[dset]['E']['mean'],E_r3=r3b[dset]['E']['mean'],P_r1=r1b[dset]['P']['mean'],P_r2=r2b[dset]['P']['mean'],P_r3=r3b[dset]['P']['mean'],E_r1_std=r1b[dset]['E']['std'],E_r2_std=r2b[dset]['E']['std'],E_r3_std=r3b[dset]['E']['std'],P_r1_std=r1b[dset]['P']['std'],P_r2_std=r2b[dset]['P']['std'],P_r3_std=r3b[dset]['P']['std'])
         # Generation of plots 
         if GEN_AND_SAVE_PLOTS:
-            _plot_entropy_purity(r1b, '/Users/jz/Desktop/plots/diff_{0}_{1}.png'.format(texp,'r1b') )
-            _plot_entropy_purity(r2b, '/Users/jz/Desktop/plots/diff_{0}_{1}.png'.format(texp,'r2b') )
-            _plot_entropy_purity(r3b, '/Users/jz/Desktop/plots/diff_{0}_{1}.png'.format(texp,'r3b') )
+            plot_conf_intervals(r1b,'/Users/juan/Desktop/plots/diff_{0}_{1}.eps'.format(texp,'r1b') )
+            plot_conf_intervals(r2b,'/Users/juan/Desktop/plots/diff_{0}_{1}.eps'.format(texp,'r2b') )
+            plot_conf_intervals(r3b,'/Users/juan/Desktop/plots/diff_{0}_{1}.eps'.format(texp,'r3b') )
         
            
