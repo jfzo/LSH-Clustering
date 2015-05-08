@@ -25,12 +25,6 @@ all: jaccardest_mod1 cosest_mod1 jaccardest_mod2 cosest_mod2
 clean: 
 	rm -Rf *.o bin/*
 
-anglelsh: src/perfectlshangle_custom.cpp
-	$(COMPILER) -Wall -std=c++11 -o bin/perfectlshangle_custom src/perfectlshangle_custom.cpp
-
-minwiselsh: src/perfectlshmwise_custom.cpp
-	$(COMPILER) -Wall -std=c++11 -o bin/perfectlshmwise_custom src/perfectlshmwise_custom.cpp
-
 
 jaccardest_mod1: src/lshsimilarity.cpp
 	$(COMPILER) $(OPTIONS) $(SIMMOD1) $(JACCSIM) -o bin/jaccLshsimMode1 src/lshsimilarity.cpp
